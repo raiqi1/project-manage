@@ -6,10 +6,14 @@ import TaskCard from "@/components/TaskCard";
 import UserCard from "@/components/UserCard";
 import { useSearchQuery } from "@/state/api";
 import { debounce } from "lodash";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 const Search = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("query") || "");
+  const [debounceSearch, setDebounceSearch] = useState(searchTerm);
   const {
     data: searchResults,
     isLoading,
@@ -18,16 +22,41 @@ const Search = () => {
     skip: searchTerm.length < 3,
   });
 
-  const handleSearch = debounce(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchTerm(event.target.value);
-    },
-    500,
-  );
-
+  // Perbarui Url saat debounce
   useEffect(() => {
-    return handleSearch.cancel;
-  }, [handleSearch.cancel]);
+    if (debounceSearch.length > 3) {
+      const params = new URLSearchParams();
+      params.set("query", debounceSearch);
+      router.push(`/dashboard/search?${params.toString()}`);
+    } else if (debounceSearch === "") {
+      router.push("/dashboard/search");
+    }
+  }, [debounceSearch, router]);
+
+  // debounce saat ketikan selesai delay 1 detik
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebounceSearch(searchTerm.trim());
+    }, 1000);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
+  // const handleSearch = debounce(
+  //   (event: React.ChangeEvent<HTMLInputElement>) => {
+  //     setSearchTerm(event.target.value);
+  //   },
+  //   500,
+  // );
+
+  // useEffect(() => {
+  //   return handleSearch.cancel;
+  // }, [handleSearch.cancel]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
   return (
     <div className="p-8">
@@ -37,7 +66,8 @@ const Search = () => {
           type="text"
           placeholder="Search..."
           className="w-1/2 rounded border p-3 shadow"
-          onChange={handleSearch}
+          value={searchTerm}
+          onChange={handleInputChange}
         />
       </div>
       <div className="p-5">
@@ -66,6 +96,9 @@ const Search = () => {
               <UserCard key={user.userId} user={user} />
             ))}
           </div>
+        )}
+        {debounceSearch === "" && (
+          <div>Silahkan masukkan kata kunci pencarian</div>
         )}
       </div>
     </div>

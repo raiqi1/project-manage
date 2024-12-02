@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { result } from "lodash";
+import { method, result } from "lodash";
+import { getSession } from "next-auth/react";
 
 export interface Project {
   id: number;
@@ -8,6 +9,7 @@ export interface Project {
   startDate?: string;
   endDate?: string;
   userTeam?: any[];
+  status?: any;
 }
 
 export enum Priority {
@@ -26,15 +28,21 @@ export enum Status {
 }
 
 export interface User {
-  userId?: number;
+  userId: number;
   username: string;
-  email: string;
+  email: any;
   password: string;
   profilePictureUrl?: string;
   // cognitoId?: string;
   teamId?: number;
   user: any;
   token: string;
+  otp?: string;
+  otpExpires?: string;
+  message?: any;
+  data?: any;
+  newPassword?: any;
+  image?: string;
 }
 
 export interface Attachment {
@@ -91,20 +99,20 @@ export const api = createApi({
   baseQuery: async (args, api, extraOptions) => {
     const baseQuery = fetchBaseQuery({
       baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
-      prepareHeaders: (headers) => {
-        const token = localStorage.getItem("token");
+      prepareHeaders: async (headers) => {
+        let token = localStorage.getItem("token");
+        if (!token) {
+          const session = await getSession();
+          token = session?.accessToken || "";
+        }
         if (token) {
           headers.set("authorization", `Bearer ${token}`);
         }
+
         return headers;
       },
     });
     const result = await baseQuery(args, api, extraOptions);
-
-    if (result.error && result.error.status === 401) {
-      localStorage.removeItem("token");
-      // window.location.reload();
-    }
     console.log("Base query result:", result);
     return result;
   },
@@ -138,6 +146,7 @@ export const api = createApi({
       }),
       invalidatesTags: ["Users"],
     }),
+
     createProject: build.mutation<Project, Partial<Project>>({
       query: (project) => ({
         url: "projects",
@@ -180,6 +189,16 @@ export const api = createApi({
         body: task,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: "Tasks", id }],
+    }),
+    updateUser: build.mutation<User, { userId: number; user: FormData }>({
+      query: ({ userId, user }) => ({
+        url: `users/${userId}`,
+        method: "PUT",
+        body: user,
+      }),
+      invalidatesTags: (results, error, { userId }) => [
+        { type: "Users", userId },
+      ],
     }),
     updateTaskStatus: build.mutation<Task, { taskId: number; status: string }>({
       query: ({ taskId, status }) => ({
@@ -231,12 +250,37 @@ export const api = createApi({
         body: credentials,
       }),
     }),
+    sendEmail: build.mutation<User, Partial<User>>({
+      query: (email) => ({
+        url: "users/forgot-password",
+        method: "POST",
+        body: email,
+      }),
+    }),
+    verifyToken: build.mutation<User, Partial<User>>({
+      query: (data) => ({
+        url: "users/verify-otp",
+        method: "POST",
+        body: data,
+      }),
+    }),
+    resetPassword: build.mutation<User, Partial<User>>({
+      query: (data) => ({
+        url: "users/reset-password",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
 export const {
   useGetUserLoginQuery,
+  useUpdateUserMutation,
   useCreateAccountMutation,
+  useSendEmailMutation,
+  useVerifyTokenMutation,
+  useResetPasswordMutation,
   useGetProjectsQuery,
   useGetProjectTeamsQuery,
   useCreateProjectMutation,

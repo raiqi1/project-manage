@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   TextField,
@@ -9,8 +9,12 @@ import {
   Box,
   CircularProgress,
 } from "@mui/material";
-import { useCreateAccountMutation, useLoginMutation } from "@/state/api";
-import StoreProvider from "../redux";
+import {
+  useCreateAccountMutation,
+  useGetUserLoginQuery,
+  useLoginMutation,
+} from "@/state/api";
+import { signIn, useSession } from "next-auth/react";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -19,8 +23,11 @@ const LoginPage = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [errorMessage, setErrorMessage] = useState(""); // Error state
   const router = useRouter();
+  const { data: session } = useSession();
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
 
   const [login, { isLoading: isLoginLoading, isError }] = useLoginMutation();
+  const { data: users, refetch } = useGetUserLoginQuery();
   const [createAccount, { isLoading: isRegisterLoading }] =
     useCreateAccountMutation();
 
@@ -31,6 +38,7 @@ const LoginPage = () => {
       localStorage.setItem("token", result.token);
       localStorage.setItem("username", result.user.username);
       router.push("/dashboard");
+      refetch();
     } catch (error: any) {
       setErrorMessage(error?.data?.message || error.message);
     }
@@ -46,13 +54,34 @@ const LoginPage = () => {
       }).unwrap();
       localStorage.setItem("token", result.token);
       localStorage.setItem("username", result.username);
-      router.push("/");
+      router.push("/dashboard");
+      refetch();
     } catch (error: any) {
       setErrorMessage(error?.data?.message || error.message);
     }
   };
 
   const isSubmitting = isLoginLoading || isRegisterLoading;
+
+  function handleForgot() {
+    router.push("/forgot-password");
+  }
+
+  useEffect(() => {}, []);
+
+  const handleGoogleLogin = async () => {
+    setLoadingGoogle(true);
+    try {
+      await signIn("google", {
+        redirect: false,
+        callbackUrl: "/dashboard",
+      });
+    } catch (error) {
+      console.log("Error signing in with Google: ", error);
+    } finally {
+      setLoadingGoogle(false);
+    }
+  };
 
   return (
     <Container maxWidth="xs">
@@ -98,6 +127,14 @@ const LoginPage = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          {!isRegistering && (
+            <div
+              className="cursor-pointer text-sm text-blue-600"
+              onClick={handleForgot}
+            >
+              <h1>Forgot Password ?</h1>
+            </div>
+          )}
           {errorMessage && (
             <div className="text-red-500">{errorMessage}</div> // Show dynamic error message
           )}
@@ -118,6 +155,16 @@ const LoginPage = () => {
             )}
           </Button>
         </form>
+        <Button
+          onClick={handleGoogleLogin}
+          variant="contained"
+          color="secondary"
+          sx={{ mt: 2 }}
+          fullWidth
+          disabled={loadingGoogle}
+        >
+          {loadingGoogle ? <CircularProgress size={24} /> : "Login with Google"}
+        </Button>
         <Button onClick={() => setIsRegistering(!isRegistering)} sx={{ mt: 2 }}>
           {isRegistering
             ? "Sudah punya akun? Login"

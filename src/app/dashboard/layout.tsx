@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import DashboardWrapper from "./dashboardWrapper";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {

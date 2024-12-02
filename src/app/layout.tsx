@@ -5,6 +5,7 @@ import "./globals.css";
 import DashboardWrapper from "./dashboardWrapper";
 import { usePathname } from "next/navigation";
 import StoreProvider from "./redux";
+import { SessionProvider } from "next-auth/react"; // Import SessionProvider
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,16 +19,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-
-  const publicPages = ["/login"];
-
-  const isPublicPage = publicPages.includes(pathname);
 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <StoreProvider>{children}</StoreProvider>
+        <SessionProvider >
+          <StoreProvider>{children}</StoreProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -6,24 +6,47 @@ import Sidebar from "@/components/Sidebar";
 import StoreProvider from "./redux";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
+import { useGetProjectsQuery } from "@/state/api";
+import { signOut, useSession } from "next-auth/react";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loadingLogout, setIsLoadingLogout] = useState(false);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const name = session?.user?.name;
+  console.log("name", name);
   const userName =
     typeof window !== "undefined" ? localStorage.getItem("username") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const router = useRouter();
+  const { data: projects, error } = useGetProjectsQuery();
+
+  console.log("session", session);
+  console.log("status", status);
+
+  useEffect(() => {
+    if (status !== "loading" && !session && !token) {
+      router.push("/login");
+    }
+  }, [session, router, status, token]);
 
   const logoutHandler = async () => {
     setIsLoadingLogout(true);
     try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      router.push("/login");
+      if (session) {
+        await signOut({ redirect: false, callbackUrl: "/login" });
+      } else if (token) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        router.push("/login");
+      }
     } catch (error) {
-      console.log("error", error);
+      console.log("Error signing out: ", error);
+    } finally {
+      setIsLoadingLogout(false);
     }
   };
 
@@ -35,11 +58,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isDarkMode]);
 
+
   return (
     <>
       <div className="absolute right-[50px] mt-2">
         <div className="flex gap-3 font-bold">
-          <h1>Welcome {userName}</h1>
+          <h1>Welcome {userName || name}</h1>
           <Button
             variant="contained"
             color="secondary"
@@ -67,36 +91,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 const DashboardWrapper = ({ children }: { children: React.ReactNode }) => {
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/login");
-    } else {
-      setIsCheckingAuth(false);
-    }
-  }, [router, isCheckingAuth]);
-
-  if (isCheckingAuth) {
-    return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        height="100vh"
-      >
-        <CircularProgress />
-        <Typography variant="body1" mt={2}>
-          Loading
-        </Typography>
-      </Box>
-    );
-  }
-
   return (
     <>
       <DashboardLayout>{children}</DashboardLayout>

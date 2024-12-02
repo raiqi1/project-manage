@@ -27,6 +27,8 @@ import {
 } from "recharts";
 import { dataGridClassNames, dataGridSxStyles } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { errorMonitor } from "node:stream";
+import { useSession } from "next-auth/react";
 
 const taskColumns: GridColDef[] = [
   { field: "title", headerName: "Title", width: 200 },
@@ -48,7 +50,9 @@ const HomePage = () => {
     data: projects,
     isLoading: isProjectsLoading,
     isError: projectError,
+    error,
   } = useGetProjectsQuery();
+  const { data: session, status } = useSession();
 
   const token = localStorage.getItem("token");
   // console.log("token from home", token);
@@ -58,27 +62,20 @@ const HomePage = () => {
 
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
 
-  console.log("isDarkMode",isDarkMode)
-
-  useEffect(() => {
-    if (projectError === true) {
-      router.push("/login");
-    }
-  }, [projectError, router]);
+  console.log("isDarkMode", isDarkMode);
 
   console.log("project Error", (projectError as any).status);
 
-  if (projectError && (projectError as any).status === 401) {
-    router.push("/login");
-  }
+  console.log("error", error);
 
   console.log("project Error", projectError);
   useEffect(() => {
     refetch();
   }, [refetch]);
 
-  if (tasksLoading || isProjectsLoading) return <div>Loading..</div>;
-  if (tasksError || !tasks || !projects) return <div>Error fetching data</div>;
+  if (tasksLoading || isProjectsLoading) return <div>Loading</div>;
+  if (tasksError || !tasks || !projects)
+    return <div>Error fetching data from dashboard</div>;
 
   const priorityCount = tasks.reduce(
     (acc: Record<string, number>, task: Task) => {
@@ -124,7 +121,7 @@ const HomePage = () => {
 
   return (
     <>
-      <div className={`container h-full w-[100%]  bg-transparent p-8 `}>
+      <div className={`container h-full w-[100%] bg-transparent p-8`}>
         <Header name="Project Management Dashboard" />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">

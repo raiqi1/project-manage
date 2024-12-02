@@ -48,6 +48,7 @@ const HomePage = () => {
     data: projects,
     isLoading: isProjectsLoading,
     isError: projectError,
+    error: errorProjects,
   } = useGetProjectsQuery();
 
   const token = localStorage.getItem("token");
@@ -65,6 +66,7 @@ const HomePage = () => {
   }, [projectError, router]);
 
   console.log("project Error", (projectError as any).status);
+  console.log("projects", projects);
 
   if (projectError && (projectError as any).status === 401) {
     router.push("/login");
@@ -77,6 +79,11 @@ const HomePage = () => {
 
   if (tasksLoading || isProjectsLoading) return <div>Loading..</div>;
   if (tasksError || !tasks || !projects) return <div>Error fetching data</div>;
+
+  console.log("task error", tasksError);
+  console.log("project Error", projectError);
+
+  console.log("error Projects", errorProjects);
 
   const priorityCount = tasks.reduce(
     (acc: Record<string, number>, task: Task) => {
