@@ -28,16 +28,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   console.log("status", status);
 
   useEffect(() => {
-    if (status !== "loading" && !session && !token) {
-      router.push("/login");
+    if (status !== "loading" && !session) {
+      if (error && typeof error === "object" && (error as any).status === 401) {
+        router.push("/login");
+        localStorage.removeItem("token");
+        localStorage.removeItem("email");
+        localStorage.removeItem("username");
+      }
     }
-  }, [session, router, status, token]);
+  }, [router, session, status, error]);
 
   const logoutHandler = async () => {
     setIsLoadingLogout(true);
     try {
       if (session) {
-        await signOut({ redirect: false, callbackUrl: "/login" });
+        await signOut({ callbackUrl: "/login" });
       } else if (token) {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
@@ -57,7 +62,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       document.documentElement.classList.remove("dark");
     }
   }, [isDarkMode]);
-
 
   return (
     <>

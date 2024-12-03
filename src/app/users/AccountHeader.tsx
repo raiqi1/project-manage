@@ -31,7 +31,7 @@ const AccountHeader = () => {
         isOpen={isModalNewProjectOpen}
         onClose={() => setIsModalNewProjectOpen(false)}
       />
-      {!getToken && (
+      {/* {!getToken && (
         <div className="pt-8">
           <Header
             name=""
@@ -45,7 +45,7 @@ const AccountHeader = () => {
             }
           />
         </div>
-      )}
+      )} */}
       {/* TABS */}
       <ModalNewProject
         isOpen={isModalNewProjectOpen}

@@ -2,6 +2,7 @@
 
 import { useAppSelector } from "@/app/redux";
 import Header from "@/components/Header";
+import SkeletonLoader from "@/components/LoadingSkeleton/SkeletonLoader";
 import { useGetProjectsQuery } from "@/state/api";
 import { DisplayOption, Gantt, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
@@ -41,7 +42,18 @@ const Timeline = () => {
     }));
   };
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="max-w-full p-8">
+        <Header name="Projects Timeline" />
+        <div className="rounded-md bg-white p-4 shadow dark:bg-dark-secondary">
+          <SkeletonLoader rows={1} height={25} width="200px" className="mb-4" />
+          <SkeletonLoader rows={1} height={30} className="mb-4" />
+          <SkeletonLoader rows={8} height={50} />
+        </div>
+      </div>
+    );
+  }
   if (isError || !projects)
     return <div>An error occurred while fetching projects</div>;
 
@@ -67,7 +79,9 @@ const Timeline = () => {
           <Gantt
             tasks={ganttTasks}
             {...displayOptions}
-            columnWidth={displayOptions?.viewMode === ViewMode?.Month ? 150 : 100}
+            columnWidth={
+              displayOptions?.viewMode === ViewMode?.Month ? 150 : 100
+            }
             listCellWidth="100px"
             projectBackgroundColor={isDarkMode ? "#101214" : "#1f2937"}
             projectProgressColor={isDarkMode ? "#1f2937" : "#aeb8c2"}

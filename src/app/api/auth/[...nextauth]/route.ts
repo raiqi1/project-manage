@@ -1,12 +1,13 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import prisma from "../../../../lib/prisma"; // Sesuaikan path prisma Anda
+import GithubProvider from "next-auth/providers/github";
+import FacebookProvider from "next-auth/providers/facebook";
+import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
-// Extend session untuk menambahkan akses token
 declare module "next-auth" {
   interface Session {
-    accessToken?: string;
+    accessToken? : string
   }
 }
 
@@ -16,64 +17,65 @@ const handler = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+    GithubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_CLIENT_ID!,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+    }),
   ],
   session: {
-    strategy: "jwt", // Gunakan JWT untuk session
+    strategy: "jwt",
   },
+  pages: {
+    signIn: "/login",
+  },
+  secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async signIn({ user, account }) {
-      // Mencari pengguna di database berdasarkan email
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email! },
+      const cekUser = await prisma.user.findUnique({
+        where: { email: user.email || "" },
       });
-
-      if (!existingUser) {
-        // Jika user belum ada di database, buat user baru
-        const newUser = await prisma.user.create({
+      if (!cekUser) {
+        const userBaru = await prisma.user.create({
           data: {
-            email: user.email!,
-            username: user.name!,
+            email: user.email || "",
+            username: user.name || "",
             image: user.image,
-            provider: account?.provider!,
-            providerAccountId: account?.providerAccountId!,
-            password: "defaultPassword", // Provide a default password
+            password: "defaultPassword",
           },
         });
-
-        // Gunakan `id` dari user baru
-        user.id = newUser.userId.toString();
+        user.id = userBaru.userId.toString();
       } else {
-        // Jika sudah ada, gunakan `id` dari database
-        user.id = existingUser.userId.toString();
+        user.id = cekUser.userId.toString();
       }
-
-      return true; // Izinkan proses sign in
+      return true;
     },
-
-    async jwt({ token, user }) {
-      // Jika user baru login, tambahkan `id` dari database ke token
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id; // ID dari database
+        token.id = user.id;
         token.email = user.email;
-
-        // Buat JWT standar untuk digunakan di backend
-        const jwtToken = jwt.sign(
-          { userId: user.id, email: user.email }, // Payload dari database
-          process.env.JWT_SECRET!, // Secret key JWT
-          { expiresIn: "1h" } // Masa berlaku token
+        const jwtTokenStandard = jwt.sign(
+          {
+            userId: user.id,
+            email: user.email,
+          },
+          process.env.JWT_SECRET || "",
+          {
+            expiresIn: "1h",
+          },
         );
-
-        token.accessToken = jwtToken; // Simpan JWT ke token
+        token.accessToken = jwtTokenStandard;
       }
-      console.log("token jwt google",token)
       return token;
     },
-
     async session({ session, token }) {
-      // Simpan `userId` dan JWT ke dalam session
+      // simpan userId dan Jwt token untuk session yg akan dipaggil useSession atau getSession
       session.user.id = token.id as string;
-      session.accessToken = token.accessToken as string; // JWT token
-      console.log("session",session)
+      session.accessToken = token.accessToken as string;
+
       return session;
     },
   },

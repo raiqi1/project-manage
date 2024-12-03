@@ -27,8 +27,10 @@ import {
 } from "recharts";
 import { dataGridClassNames, dataGridSxStyles } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { errorMonitor } from "node:stream";
 import { useSession } from "next-auth/react";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+import SkeletonLoader from "@/components/LoadingSkeleton/SkeletonLoader";
 
 const taskColumns: GridColDef[] = [
   { field: "title", headerName: "Title", width: 200 },
@@ -73,7 +75,30 @@ const HomePage = () => {
     refetch();
   }, [refetch]);
 
-  if (tasksLoading || isProjectsLoading) return <div>Loading</div>;
+  if (tasksLoading || isProjectsLoading) {
+    return (
+      <div className="container h-full w-full bg-transparent p-8">
+        <Header name="Project Management Dashboard" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Loading untuk grafik 1 */}
+          <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">
+            <SkeletonLoader rows={1} height={25} width="200px" />
+            <SkeletonLoader rows={1} height={300} className="mt-4" />
+          </div>
+          {/* Loading untuk grafik 2 */}
+          <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary">
+            <SkeletonLoader rows={1} height={25} width="200px" />
+            <SkeletonLoader rows={1} height={300} className="mt-4" />
+          </div>
+          {/* Loading untuk tabel */}
+          <div className="rounded-lg bg-white p-4 shadow dark:bg-dark-secondary md:col-span-2">
+            <SkeletonLoader rows={1} height={25} width="200px" />
+            <SkeletonLoader rows={10} />
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (tasksError || !tasks || !projects)
     return <div>Error fetching data from dashboard</div>;
 

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { formatISO } from "date-fns";
 import Switch from "@mui/material/Switch";
 import {
+  CircularProgress,
   FormControl,
   FormControlLabel,
   FormGroup,
@@ -11,6 +12,7 @@ import {
 } from "@mui/material";
 import { FaPlusCircle } from "react-icons/fa";
 import { FaCircleMinus } from "react-icons/fa6";
+import { useRouter } from "next/navigation";
 
 type Props = {
   isOpen: boolean;
@@ -18,9 +20,11 @@ type Props = {
 };
 
 const ModalNewProject = ({ isOpen, onClose }: Props) => {
+  const router = useRouter();
   const [createProject, { isLoading }] = useCreateProjectMutation();
   const { data: projects, refetch } = useGetProjectsQuery();
   const [projectName, setProjectName] = useState("");
+  const [id, setId] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -37,15 +41,25 @@ const ModalNewProject = ({ isOpen, onClose }: Props) => {
       representation: "complete",
     });
 
-    await createProject({
+    const newProject = await createProject({
       name: projectName,
       description,
       startDate: formattedStartDate,
       endDate: formattedEndDate,
-      userTeam :team,
+      userTeam: team,
     });
     refetch();
+    onClose();
+    router.push(`${newProject.data?.id}`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <CircularProgress size={50} thickness={5} color="primary" />
+      </div>
+    );
+  }
 
   const isFormValid = () => {
     return projectName && description && startDate && endDate;

@@ -17,6 +17,7 @@ import Image from "next/image";
 import ModalEditTask from "@/components/ModalEditTask";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import SkeletonLoader from "@/components/LoadingSkeleton/SkeletonLoader";
 
 type BoardProps = {
   id: string;
@@ -27,7 +28,7 @@ const taskStatus = ["To Do", "Work In Progress", "Under Review", "Completed"];
 
 const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
   const {
-    data: tasks,
+    data: tasks = [],
     isLoading,
     error,
     refetch,
@@ -50,20 +51,34 @@ const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
     refetch();
   }, [id, refetch]);
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        {/* <SkeletonLoader rows={1} height={40} className="my-2" /> */}
+        <SkeletonLoader rows={tasks?.length} height={40} className="my-2" />
+      </div>
+    );
+  }
   if (error) return <div>An error occurred while fetching tasks</div>;
 
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
         {taskStatus.map((status) => (
-          <TaskColumn
-            key={status}
-            status={status}
-            tasks={tasks || []}
-            moveTask={moveTask}
-            setIsModalNewTaskOpen={setIsModalNewTaskOpen}
-          />
+          <>
+            {isLoading ? (
+              <SkeletonLoader rows={1} height={40} className="my-2" />
+            ) : (
+              <TaskColumn
+                key={status}
+                status={status}
+                tasks={tasks || []}
+                moveTask={moveTask}
+                setIsModalNewTaskOpen={setIsModalNewTaskOpen}
+                isLoaded={isLoading}
+              />
+            )}
+          </>
         ))}
       </div>
     </DndProvider>
@@ -73,6 +88,7 @@ const BoardView = ({ id, setIsModalNewTaskOpen }: BoardProps) => {
 type TaskColumnProps = {
   status: string;
   tasks: TaskType[];
+  isLoaded: boolean;
   moveTask: (taskId: number, toStatus: string) => void;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
 };
@@ -82,6 +98,7 @@ const TaskColumn = ({
   tasks,
   moveTask,
   setIsModalNewTaskOpen,
+  isLoaded,
 }: TaskColumnProps) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "task",
@@ -103,6 +120,14 @@ const TaskColumn = ({
   const searchParams = useSearchParams();
   const isTeamQuery = searchParams.get("team") === "true";
   console.log("isTeamQuery", isTeamQuery);
+
+  if (isLoaded) {
+    return (
+      <div className="p-4">
+        <SkeletonLoader rows={1} height={40} className="my-2" />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -201,6 +226,10 @@ const Task = ({ task }: TaskProps) => {
 
   const handleOpenEditModal = () => setIsEditModalOpen(true);
   const handleCloseEditModal = () => setIsEditModalOpen(false);
+
+  if (isLoading) {
+    return <SkeletonLoader rows={1} height={50} className="my-2" />;
+  }
 
   const PriorityTag = ({ priority }: { priority: TaskType["priority"] }) => (
     <div
@@ -323,8 +352,7 @@ const Task = ({ task }: TaskProps) => {
         <div className="mt-4 border-t border-gray-200 dark:border-stroke-dark" />
 
         {/* image or pdf */}
-        <div>
-        </div>
+        <div></div>
         {task?.filesUrl && task?.filesUrl?.length > 0 && (
           <div className="mt-4">
             <div>

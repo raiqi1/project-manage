@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "@/components/Header";
+import SkeletonLoader from "@/components/LoadingSkeleton/SkeletonLoader";
 import ProjectCard from "@/components/ProjectCard";
 import TaskCard from "@/components/TaskCard";
 import UserCard from "@/components/UserCard";
@@ -57,6 +58,7 @@ const Search = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
+  
 
   return (
     <div className="p-8">
@@ -71,9 +73,15 @@ const Search = () => {
         />
       </div>
       <div className="p-5">
-        {isLoading && <p>Loading...</p>}
+        {isLoading && (
+          <SkeletonLoader
+            rows={5}
+            height={80}
+            className="rounded-md bg-white dark:bg-dark-secondary"
+          />
+        )}
         {isError && <p>Error occurred while fetching search results.</p>}
-        {!isLoading && !isError && searchResults && (
+        {!isLoading && !isError && searchResults && debounceSearch.length > 0 && (
           <div>
             {searchResults.tasks && searchResults.tasks?.length > 0 && (
               <h2>Tasks</h2>
